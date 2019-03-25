@@ -25,5 +25,6 @@
 <br /><hr /><br />
 
 ## LazerGun Model M9B2 Hardware Schematic:
+<br />
 
 ![LazerGun Model M9B2 Hardware Schematic](https://github.com/lazerboy-entertainment-system/lazergun/blob/master/M9B2/hardware_schematic/Schematic-LazerGun-M9B2.png "LazerGun Model M9B2 Hardware Schematic")
