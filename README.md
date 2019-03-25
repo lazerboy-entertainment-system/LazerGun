@@ -5,7 +5,7 @@
 
 
 
-## LazerGun Model M9B2 Prototype Videos:
+## LazerGun Model M9B2 Prototype YouTube Videos:
 <br />
 
 
