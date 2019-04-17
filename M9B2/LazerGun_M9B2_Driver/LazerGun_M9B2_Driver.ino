@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: ALPHA_04
+// VERSION: ALPHA_05
 
 
 #include <avr/io.h>
@@ -18,10 +18,11 @@
 #define PIN_TRIGGER_OUT   7
 #define PIN_SLIDE_OUT     8
 
-#define PIN_LASER_OUT     11
+#define PIN_LASER_OUT     5
 
-#define DELAY_PULSE_LASER   100
+#define DELAY_PULSE_LASER   5
 #define DELAY_RACK_SLIDE    20
+#define DELAY_TRIGGER_DEBOUNCE  300
 
 
 // ISR FLAGS MUST BE DECLARED VOLATILE
@@ -33,6 +34,8 @@ volatile int doRackSlide = 0;
 
 void setup() 
 {
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
 
   pinMode(PIN_TRIGGER_IN, INPUT_PULLUP);
   pinMode(PIN_SLIDE_IN, INPUT_PULLUP);
@@ -70,6 +73,10 @@ void loop()
       digitalWrite(PIN_TRIGGER_OUT, LOW);
   
       doFireLaser = 0;
+
+      // TEMPORARY CODE TO DEBOUNCE TRIGGER
+      delay(DELAY_TRIGGER_DEBOUNCE);
+      isTriggerEnabled = 1;
     }
   }
 
