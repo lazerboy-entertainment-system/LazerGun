@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_03
+// VERSION: BETA_04
 
 
 // INCLUDED LIBRARIES
@@ -111,6 +111,7 @@ void setup()
   // ENABLE INTERRUPTS
   sei();
 
+// END SETUP
 }
 
 
@@ -119,29 +120,25 @@ void loop()
 {
 
   // ON FIRE LASER EVENT
+    // FIRE LASER
+    // CLEAR DO FIRE LASER FLAG
+
   if (flag_doFireLaser)
   {
-
-    // FIRE LASER
     digitalWrite(PIN_LASER_OUT, HIGH);
-
-//      digitalWrite(PIN_TRIGGER_OUT, HIGH);
-
-    // CLEAR FIRE LASER FLAG
+//    digitalWrite(PIN_TRIGGER_OUT, HIGH);
     flag_doFireLaser = 0;
-
   }
 
 
   // ON LASER RESET EVENT
+    // STOP FIRING LASER
+    // CLEAR RESET LASER DO EVENT FLAG
+
   if (timer_laserReset.flag_doEvent)
   {  
-    // STOP FIRING LASER
     digitalWrite(PIN_LASER_OUT, LOW);
-
 //    digitalWrite(PIN_TRIGGER_OUT, LOW);
-
-    // CLEAR RESET LASER FLAG
     timer_laserReset.flag_doEvent = 0;
   }
 
@@ -152,31 +149,20 @@ void loop()
       // SET TRIGGER RESET TIMER COUNT AS MAX COUNT
       // ENABLE TRIGGER RESET TIMER
     // ELSE
+      // RESET TRIGGER DEBOUNCE TIMER COUNT AS MAX COUNT
       // ENABLE TRIGGER DEBOUNCE TIMER
 
-
-  // ON TRIGGER DEBOUNCE TIMER EVENT
   if (timer_triggerDebounce.flag_doEvent)
   {  
-    // IF TRIGGER PIN HIGH
     if (digitalRead(PIN_TRIGGER_IN) == HIGH)
     {
-      // CLEAR TRIGGER DEBOUNCE DO EVENT FLAG
       timer_triggerDebounce.flag_doEvent = 0;
-      
-      // SET TRIGGER RESET TIMER COUNT AS MAX COUNT
       timer_triggerReset.count = timer_triggerReset.maxCount;
-
-      // ENABLE TRIGGER RESET TIMER
       ++timer_triggerReset.flag_isEnabled;      
     }
-    // ELSE
     else
     {
-      // RESET TRIGGER DEBOUNCE TIMER COUNT AS MAX COUNT
       timer_triggerDebounce.count = timer_triggerDebounce.maxCount;
-      
-      // ENABLE TRIGGER DEBOUNCE TIMER
       ++timer_triggerDebounce.flag_isEnabled;      
     }
   }
@@ -186,13 +172,9 @@ void loop()
     // CLEAR TRIGGER RESET DO EVENT FLAG
     // ENABLE TRIGGER INPUT
 
-  // ON TRIGGER RESET TIMER EVENT
   if (timer_triggerReset.flag_doEvent)
   {
-    // CLEAR TRIGGER RESET DO EVENT FLAG
     timer_triggerReset.flag_doEvent = 0;
-    
-    // ENABLE TRIGGER INPUT
     ++flag_isTriggerEnabled;
   }
 
@@ -217,6 +199,7 @@ void loop()
   }
 */
   
+// END LOOP
 }
 
 
@@ -232,28 +215,17 @@ void ISR_pin_trigger_in()
     // SET LASER RESET TIMER COUNT AS MAX COUNT
     // ENABLE LASER RESET TIMER
 
-
-  // IF TRIGGER INPUT ENABLED
   if (flag_isTriggerEnabled)
   {
-    // DISABLE TRIGGER INPUT
     flag_isTriggerEnabled = 0;
-    
-    // SET FIRE LASER FLAG
     ++flag_doFireLaser;
-    
-    // SET TRIGGER DEBOUNCE TIMER COUNT AS MAX COUNT
     timer_triggerDebounce.count = timer_triggerDebounce.maxCount;
-
-    // ENABLE TRIGGER DEBOUNCE TIMER
     ++timer_triggerDebounce.flag_isEnabled;
-
-    // SET LASER RESET TIMER COUNT AS MAX COUNT
     timer_laserReset.count = timer_laserReset.maxCount;
-    
-    // ENABLE LASER RESET TIMER
     ++timer_laserReset.flag_isEnabled;
   }
+  
+// END TRIGGER SWITCH ISR
 }
 
 
@@ -268,6 +240,8 @@ void ISR_pin_slide_in()
     // RESET TRIGGER (LEAVE SAFETY MODE)
     flag_isTriggerEnabled = 1;
   }
+
+// END SLIDE SWITCH ISR
 }
 
 
@@ -282,86 +256,60 @@ ISR(TIMER1_COMPA_vect)
     // ELSE 
       // DECREMENT COUNT
       
-  // IF TRIGGER RESET TIMER ENABLED
-    // IF COUNT <= 0 
-      // DISABLE TIMER
-      // SET DO EVENT FLAG
-    // ELSE 
-      // DECREMENT COUNT
-      
-  // IF TRIGGER RESET TIMER ENABLED
-    // IF COUNT <= 0 
-      // DISABLE TIMER
-      // SET DO EVENT FLAG
-    // ELSE 
-      // DECREMENT COUNT
-
-  // IF LASER RESET TIMER ENABLED
-    // IF COUNT <= 0 
-      // DISABLE TIMER
-      // SET DO EVENT FLAG
-    // ELSE 
-      // DECREMENT COUNT
-
-
-  // IF TRIGGER DEBOUNCE TIMER ENABLED
   if (timer_triggerDebounce.flag_isEnabled)
   {
-    // IF COUNT <= 0 
     if (timer_triggerDebounce.count <= 0)
     {
-      // DISABLE TIMER
       timer_triggerDebounce.flag_isEnabled = 0;
-      
-      // SET DO EVENT FLAG
       ++timer_triggerDebounce.flag_doEvent;
     }
-    // ELSE 
     else
     {
-      // DECREMENT COUNT
       --timer_triggerDebounce.count;
     }
   }
   
+
   // IF TRIGGER RESET TIMER ENABLED
+    // IF COUNT <= 0 
+      // DISABLE TIMER
+      // SET DO EVENT FLAG
+    // ELSE 
+      // DECREMENT COUNT
+
   if (timer_triggerReset.flag_isEnabled)
   {
-    // IF COUNT <= 0 
     if (timer_triggerReset.count <= 0)
     {
-      // DISABLE TIMER
       timer_triggerReset.flag_isEnabled = 0;
-      
-      // SET DO EVENT FLAG
       ++timer_triggerReset.flag_doEvent;
     }
-    // ELSE 
     else
     {
-      // DECREMENT COUNT
       --timer_triggerReset.count;
     }
   }
   
+
   // IF LASER RESET TIMER ENABLED
+    // IF COUNT <= 0 
+      // DISABLE TIMER
+      // SET DO EVENT FLAG
+    // ELSE 
+      // DECREMENT COUNT
+
   if (timer_laserReset.flag_isEnabled)
   {
-    // IF COUNT <= 0 
     if (timer_laserReset.count <= 0)
     {
-      // DISABLE TIMER
       timer_laserReset.flag_isEnabled = 0;
-      
-      // SET DO EVENT FLAG
       ++timer_laserReset.flag_doEvent;
     }
-    // ELSE 
     else
     {
-      // DECREMENT COUNT
       --timer_laserReset.count;
     }
   }
 
+// END TIMER1 ISR
 }
