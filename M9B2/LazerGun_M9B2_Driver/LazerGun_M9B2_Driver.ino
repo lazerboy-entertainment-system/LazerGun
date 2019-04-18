@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_04
+// VERSION: BETA_05
 
 
 // INCLUDED LIBRARIES
@@ -37,8 +37,8 @@
 
 
 // TYPE DEFINITIONS
-typedef struct timer_t timer_t;
-struct timer_t
+typedef struct timer16_t timer16_t;
+struct timer16_t
 {
   uint16_t flag_isEnabled : 1;
   uint16_t count          : 15;
@@ -58,9 +58,9 @@ uint8_t firingMode = MODE_SEMI_AUTOMATIC;
 
 // ISR VARIABLES
 // NOTE: ISR VARIABLES MUST BE DECLARED VOLATILE
-volatile timer_t timer_triggerDebounce =  {0, 0, TIMER_TRIGGER_DEBOUNCE_MAX_COUNT, 0};
-volatile timer_t timer_triggerReset =     {0, 0, TIMER_TRIGGER_RESET_MAX_COUNT, 0};
-volatile timer_t timer_laserReset =       {0, 0, TIMER_LASER_RESET_MAX_COUNT, 0};
+volatile timer16_t timer_triggerDebounce =  {0, 0, TIMER_TRIGGER_DEBOUNCE_MAX_COUNT, 0};
+volatile timer16_t timer_triggerReset =     {0, 0, TIMER_TRIGGER_RESET_MAX_COUNT, 0};
+volatile timer16_t timer_laserReset =       {0, 0, TIMER_LASER_RESET_MAX_COUNT, 0};
 
 volatile uint8_t flag_isTriggerEnabled = 0;
 volatile uint8_t flag_isSlideEnabled = 1;
