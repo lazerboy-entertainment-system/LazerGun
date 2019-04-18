@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_01
+// VERSION: BETA_02
 
 
 // INCLUDED LIBRARIES
@@ -28,7 +28,7 @@
 #define MODE_FULLY_AUTOMATIC    3
 
 #define TIMER_INTERVAL_MILLISECONDS   4
-#define CPU_FREQUENCY                 16000000
+#define CPU_MHZ                       16
 #define TIMER_PRESCALAR               1024
 
 #define TIMER_TRIGGER_DEBOUNCE_MAX_COUNT  10
@@ -48,7 +48,7 @@ struct timer_t
 
 
 // GLOBAL CONSTANTS
-const double MAX_TIMER_ISR_COUNT = (CPU_FREQUENCY / TIMER_PRESCALAR * TIMER_INTERVAL_MILLISECONDS);
+const double MAX_TIMER_ISR_COUNT = ((CPU_MHZ * 1000) / TIMER_PRESCALAR * TIMER_INTERVAL_MILLISECONDS);
 
 
 // GLOBAL VARIABLES
@@ -276,29 +276,29 @@ ISR(TIMER1_COMPA_vect)
 {
 
   // IF TRIGGER DEBOUNCE TIMER ENABLED
-    // IF COUNT == 0 
-      // CLEAR TIMER
+    // IF COUNT <= 0 
+      // DISABLE TIMER
       // SET DO EVENT FLAG
     // ELSE 
       // DECREMENT COUNT
       
   // IF TRIGGER RESET TIMER ENABLED
-    // IF COUNT == 0 
-      // CLEAR TIMER
+    // IF COUNT <= 0 
+      // DISABLE TIMER
       // SET DO EVENT FLAG
     // ELSE 
       // DECREMENT COUNT
       
   // IF TRIGGER RESET TIMER ENABLED
-    // IF COUNT == 0 
-      // CLEAR TIMER
+    // IF COUNT <= 0 
+      // DISABLE TIMER
       // SET DO EVENT FLAG
     // ELSE 
       // DECREMENT COUNT
 
   // IF LASER RESET TIMER ENABLED
-    // IF COUNT == 0 
-      // CLEAR TIMER
+    // IF COUNT <= 0 
+      // DISABLE TIMER
       // SET DO EVENT FLAG
     // ELSE 
       // DECREMENT COUNT
@@ -307,10 +307,10 @@ ISR(TIMER1_COMPA_vect)
   // IF TRIGGER DEBOUNCE TIMER ENABLED
   if (timer_triggerDebounce.flag_isEnabled)
   {
-    // IF COUNT == 0 
-    if (!timer_triggerDebounce.count)
+    // IF COUNT <= 0 
+    if (timer_triggerDebounce.count <= 0)
     {
-      // CLEAR TIMER
+      // DISABLE TIMER
       timer_triggerDebounce.flag_isEnabled = 0;
       
       // SET DO EVENT FLAG
@@ -327,10 +327,10 @@ ISR(TIMER1_COMPA_vect)
   // IF TRIGGER RESET TIMER ENABLED
   if (timer_triggerReset.flag_isEnabled)
   {
-    // IF COUNT == 0 
-    if (!timer_triggerReset.count)
+    // IF COUNT <= 0 
+    if (timer_triggerReset.count <= 0)
     {
-      // CLEAR TIMER
+      // DISABLE TIMER
       timer_triggerReset.flag_isEnabled = 0;
       
       // SET DO EVENT FLAG
@@ -347,10 +347,10 @@ ISR(TIMER1_COMPA_vect)
   // IF LASER RESET TIMER ENABLED
   if (timer_laserReset.flag_isEnabled)
   {
-    // IF COUNT == 0 
-    if (!timer_laserReset.count)
+    // IF COUNT <= 0 
+    if (timer_laserReset.count <= 0)
     {
-      // CLEAR TIMER
+      // DISABLE TIMER
       timer_laserReset.flag_isEnabled = 0;
       
       // SET DO EVENT FLAG
