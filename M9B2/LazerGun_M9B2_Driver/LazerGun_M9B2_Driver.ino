@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_05
+// VERSION: BETA_06
 
 
 // INCLUDED LIBRARIES
@@ -32,6 +32,7 @@
 #define TIMER_PRESCALAR               1024
 
 #define TIMER_TRIGGER_DEBOUNCE_MAX_COUNT  10
+#define TIMER_SLIDE_DEBOUNCE_MAX_COUNT    50
 #define TIMER_TRIGGER_RESET_MAX_COUNT     10
 #define TIMER_LASER_RESET_MAX_COUNT       1
 
@@ -61,6 +62,7 @@ uint8_t firingMode = MODE_SEMI_AUTOMATIC;
 volatile timer16_t timer_triggerDebounce =  {0, 0, TIMER_TRIGGER_DEBOUNCE_MAX_COUNT, 0};
 volatile timer16_t timer_triggerReset =     {0, 0, TIMER_TRIGGER_RESET_MAX_COUNT, 0};
 volatile timer16_t timer_laserReset =       {0, 0, TIMER_LASER_RESET_MAX_COUNT, 0};
+volatile timer16_t timer_slideDebounce =  {0, 0, TIMER_SLIDE_DEBOUNCE_MAX_COUNT, 0};
 
 volatile uint8_t flag_isTriggerEnabled = 0;
 volatile uint8_t flag_isSlideEnabled = 1;
@@ -121,12 +123,13 @@ void loop()
 
   // ON FIRE LASER EVENT
     // FIRE LASER
+    // GENERATE FIRE LASER SOUND
     // CLEAR DO FIRE LASER FLAG
 
   if (flag_doFireLaser)
   {
     digitalWrite(PIN_LASER_OUT, HIGH);
-//    digitalWrite(PIN_TRIGGER_OUT, HIGH);
+    digitalWrite(PIN_TRIGGER_OUT, HIGH);
     flag_doFireLaser = 0;
   }
 
@@ -138,7 +141,6 @@ void loop()
   if (timer_laserReset.flag_doEvent)
   {  
     digitalWrite(PIN_LASER_OUT, LOW);
-//    digitalWrite(PIN_TRIGGER_OUT, LOW);
     timer_laserReset.flag_doEvent = 0;
   }
 
@@ -170,34 +172,39 @@ void loop()
 
   // ON TRIGGER RESET TIMER EVENT
     // CLEAR TRIGGER RESET DO EVENT FLAG
+    // STOP FIRE LASER SOUND
     // ENABLE TRIGGER INPUT
 
   if (timer_triggerReset.flag_doEvent)
   {
     timer_triggerReset.flag_doEvent = 0;
+    digitalWrite(PIN_TRIGGER_OUT, LOW);
     ++flag_isTriggerEnabled;
   }
 
 
-/*
+  // ON RACK SLIDE EVENT
+    // GENERATE RACK SLIDE SOUND
+    // CLEAR DO RACK SLIDE FLAG    
+
   if (flag_doRackSlide)
   {
-    // GENERATE RACK SLIDE SOUND
-    {
-      digitalWrite(PIN_SLIDE_OUT, HIGH);
-      delay(DELAY_RACK_SLIDE);
-    }
-    
-    // STOP RACKING SLIDE
-    {
-      digitalWrite(PIN_SLIDE_OUT, LOW);
-      flag_doRackSlide = 0;
-
-      // TEMPORARY CODE TO DEBOUNCE SLIDE
-      delay(DELAY_SLIDE_DEBOUNCE);    
-    }
+    digitalWrite(PIN_SLIDE_OUT, HIGH);
+    flag_doRackSlide = 0;
   }
-*/
+
+
+  // ON SLIDE DEBOUNCE TIMER EVENT
+    // CLEAR SLIDE DEBOUNCE DO EVENT FLAG
+    // STOP RACKING SLIDE SOUND
+    // ENABLE SLIDE INPUT
+
+  if (timer_slideDebounce.flag_doEvent)
+  {
+    timer_slideDebounce.flag_doEvent = 0;
+    digitalWrite(PIN_SLIDE_OUT, LOW);
+    ++flag_isSlideEnabled;
+  }
   
 // END LOOP
 }
@@ -232,13 +239,20 @@ void ISR_pin_trigger_in()
 // INTERRUPT SERVICE ROUTINE FOR SLIDE SWITCH
 void ISR_pin_slide_in()
 {
+
+  // IF SLIDE INPUT ENABLED
+    // DISABLE SLIDE INPUT
+    // SET DO RACK SLIDE FLAG
+    // SET SLIDE DEBOUNCE TIMER COUNT AS MAX COUNT
+    // ENABLE SLIDE DEBOUNCE TIMER
+  
   if (flag_isSlideEnabled)
   {
-    // GENERATE RACK SLIDE SOUND ON NEXT LOOP ITERATION
-    flag_doRackSlide = 1;
-
-    // RESET TRIGGER (LEAVE SAFETY MODE)
-    flag_isTriggerEnabled = 1;
+    ++flag_isTriggerEnabled;
+    flag_isSlideEnabled = 0;
+    ++flag_doRackSlide;
+    timer_slideDebounce.count = timer_slideDebounce.maxCount;
+    ++timer_slideDebounce.flag_isEnabled;
   }
 
 // END SLIDE SWITCH ISR
@@ -266,6 +280,27 @@ ISR(TIMER1_COMPA_vect)
     else
     {
       --timer_triggerDebounce.count;
+    }
+  }
+  
+
+  // IF SLIDE DEBOUNCE TIMER ENABLED
+    // IF COUNT <= 0 
+      // DISABLE TIMER
+      // SET DO EVENT FLAG
+    // ELSE 
+      // DECREMENT COUNT
+      
+  if (timer_slideDebounce.flag_isEnabled)
+  {
+    if (timer_slideDebounce.count <= 0)
+    {
+      timer_slideDebounce.flag_isEnabled = 0;
+      ++timer_slideDebounce.flag_doEvent;
+    }
+    else
+    {
+      --timer_slideDebounce.count;
     }
   }
   
