@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_07
+// VERSION: BETA_08
 
 
 // INCLUDED LIBRARIES
@@ -22,7 +22,7 @@
 
 #define PIN_LASER_OUT     5
 
-#define MODE_SAFETY             0   // UNUSED
+#define MODE_SAFETY             0
 #define MODE_SEMI_AUTOMATIC     1
 #define MODE_THREE_ROUND_BURST  2
 #define MODE_FULLY_AUTOMATIC    3
@@ -56,7 +56,6 @@ const double MAX_TIMER_ISR_COUNT = ((CPU_MHZ * 1000.0) / TIMER_PRESCALAR * TIMER
 
 
 // GLOBAL VARIABLES
-// NOTE:  SAFETY MODE IS IMPLEMENTED BY DISABLING THE TRIGGER AT SYSTEM START
 uint8_t firingMode = MODE_SAFETY;
 
 
@@ -118,7 +117,7 @@ void setup()
   // ENABLE INTERRUPTS
   sei();
 
-  // PREVENT REMOVAL OF SAFETY AT SYSTEM START
+  // PREVENT UNINTENTIONAL REMOVAL OF SAFETY AT SYSTEM START
   flag_isSlideEnabled = 0;
   timer_slideReset.count = TIMER_SLIDE_RESET_INIT;
   timer_slideReset.flag_isEnabled = 1;      
@@ -278,11 +277,14 @@ void ISR_pin_trigger_in()
 void ISR_pin_slide_in()
 {
 
-
-// TODO:  UPDATE COMMENTS
-
   // IF SLIDE INPUT ENABLED
-    // ENABLE TRIGGER (REMOVE SAFETY)
+    // IF MODE SELECTION WINDOW TIMER ENABLED
+      // SET FIRING MODE TO SEMI AUTOMATIC
+    // ELSE
+      // INCREMENT FIRING MODE
+    // SET MODE SELECTION WINDOW TIMER COUNT AS MAX COUNT
+    // ENABLE MODE SELECTION WINDOW TIMER
+   
     // DISABLE SLIDE INPUT
     // SET DO RACK SLIDE FLAG
     // SET SLIDE DEBOUNCE TIMER COUNT AS MAX COUNT
@@ -290,7 +292,6 @@ void ISR_pin_slide_in()
   
   if (flag_isSlideEnabled)
   {
-//    flag_isTriggerEnabled = 1;
     if (!timer_modeSelectionWindow.flag_isEnabled)
     {
       firingMode = MODE_SEMI_AUTOMATIC;
