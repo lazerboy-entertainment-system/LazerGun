@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_06
+// VERSION: BETA_07
 
 
 // INCLUDED LIBRARIES
@@ -31,10 +31,13 @@
 #define CPU_MHZ                       16
 #define TIMER_PRESCALAR               1024
 
-#define TIMER_TRIGGER_DEBOUNCE_MAX_COUNT  10
-#define TIMER_SLIDE_DEBOUNCE_MAX_COUNT    50
-#define TIMER_TRIGGER_RESET_MAX_COUNT     10
-#define TIMER_LASER_RESET_MAX_COUNT       1
+#define TIMER_TRIGGER_DEBOUNCE_MAX_COUNT        10
+#define TIMER_TRIGGER_RESET_MAX_COUNT           10
+#define TIMER_LASER_RESET_MAX_COUNT             1
+#define TIMER_SLIDE_DEBOUNCE_MAX_COUNT          50
+#define TIMER_SLIDE_RESET_MAX_COUNT             10
+#define TIMER_SLIDE_RESET_INIT                  50
+#define TIMER_MODE_SELECTION_WINDOW_MAX_COUNT   250
 
 
 // TYPE DEFINITIONS
@@ -54,17 +57,19 @@ const double MAX_TIMER_ISR_COUNT = ((CPU_MHZ * 1000.0) / TIMER_PRESCALAR * TIMER
 
 // GLOBAL VARIABLES
 // NOTE:  SAFETY MODE IS IMPLEMENTED BY DISABLING THE TRIGGER AT SYSTEM START
-uint8_t firingMode = MODE_SEMI_AUTOMATIC;
+uint8_t firingMode = MODE_SAFETY;
 
 
 // ISR VARIABLES
 // NOTE: ISR VARIABLES MUST BE DECLARED VOLATILE
-volatile timer16_t timer_triggerDebounce =  {0, 0, TIMER_TRIGGER_DEBOUNCE_MAX_COUNT, 0};
-volatile timer16_t timer_triggerReset =     {0, 0, TIMER_TRIGGER_RESET_MAX_COUNT, 0};
-volatile timer16_t timer_laserReset =       {0, 0, TIMER_LASER_RESET_MAX_COUNT, 0};
-volatile timer16_t timer_slideDebounce =  {0, 0, TIMER_SLIDE_DEBOUNCE_MAX_COUNT, 0};
+volatile timer16_t timer_triggerDebounce =      {0, 0, TIMER_TRIGGER_DEBOUNCE_MAX_COUNT, 0};
+volatile timer16_t timer_triggerReset =         {0, 0, TIMER_TRIGGER_RESET_MAX_COUNT, 0};
+volatile timer16_t timer_laserReset =           {0, 0, TIMER_LASER_RESET_MAX_COUNT, 0};
+volatile timer16_t timer_slideDebounce =        {0, 0, TIMER_SLIDE_DEBOUNCE_MAX_COUNT, 0};
+volatile timer16_t timer_slideReset =           {0, 0, TIMER_SLIDE_RESET_MAX_COUNT, 0};
+volatile timer16_t timer_modeSelectionWindow =  {0, 0, TIMER_MODE_SELECTION_WINDOW_MAX_COUNT, 0};
 
-volatile uint8_t flag_isTriggerEnabled = 0;
+volatile uint8_t flag_isTriggerEnabled = 1;
 volatile uint8_t flag_isSlideEnabled = 1;
 volatile uint8_t flag_doFireLaser = 0;
 volatile uint8_t flag_doRackSlide = 0;
@@ -113,6 +118,13 @@ void setup()
   // ENABLE INTERRUPTS
   sei();
 
+  // PREVENT REMOVAL OF SAFETY AT SYSTEM START
+  flag_isSlideEnabled = 0;
+  timer_slideReset.count = TIMER_SLIDE_RESET_INIT;
+  timer_slideReset.flag_isEnabled = 1;      
+
+//  Serial.begin(115200);
+
 // END SETUP
 }
 
@@ -160,12 +172,12 @@ void loop()
     {
       timer_triggerDebounce.flag_doEvent = 0;
       timer_triggerReset.count = timer_triggerReset.maxCount;
-      ++timer_triggerReset.flag_isEnabled;      
+      timer_triggerReset.flag_isEnabled = 1;      
     }
     else
     {
       timer_triggerDebounce.count = timer_triggerDebounce.maxCount;
-      ++timer_triggerDebounce.flag_isEnabled;      
+      timer_triggerDebounce.flag_isEnabled = 1;      
     }
   }
 
@@ -179,7 +191,7 @@ void loop()
   {
     timer_triggerReset.flag_doEvent = 0;
     digitalWrite(PIN_TRIGGER_OUT, LOW);
-    ++flag_isTriggerEnabled;
+    flag_isTriggerEnabled = 1;
   }
 
 
@@ -195,17 +207,43 @@ void loop()
 
 
   // ON SLIDE DEBOUNCE TIMER EVENT
-    // CLEAR SLIDE DEBOUNCE DO EVENT FLAG
-    // STOP RACKING SLIDE SOUND
-    // ENABLE SLIDE INPUT
+    // IF SLIDE PIN HIGH
+      // CLEAR SLIDE DEBOUNCE DO EVENT FLAG
+      // SET SLIDE RESET TIMER COUNT AS MAX COUNT
+      // ENABLE SLIDE RESET TIMER
+    // ELSE
+      // RESET SLIDE DEBOUNCE TIMER COUNT AS MAX COUNT
+      // ENABLE SLIDE DEBOUNCE TIMER
 
   if (timer_slideDebounce.flag_doEvent)
   {
-    timer_slideDebounce.flag_doEvent = 0;
-    digitalWrite(PIN_SLIDE_OUT, LOW);
-    ++flag_isSlideEnabled;
+    if (digitalRead(PIN_SLIDE_IN) == HIGH)
+    {
+      timer_slideDebounce.flag_doEvent = 0;
+      timer_slideReset.count = timer_slideReset.maxCount;
+      timer_slideReset.flag_isEnabled = 1;      
+    }
+    else
+    {
+      timer_slideDebounce.count = timer_slideDebounce.maxCount;
+      timer_slideDebounce.flag_isEnabled = 1;      
+    }
   }
+
   
+  // ON SLIDE RESET TIMER EVENT
+    // CLEAR SLIDE RESET DO EVENT FLAG
+    // STOP RACKING SLIDE SOUND
+    // ENABLE SLIDE INPUT
+
+  if (timer_slideReset.flag_doEvent)
+  {
+    timer_slideReset.flag_doEvent = 0;
+    digitalWrite(PIN_SLIDE_OUT, LOW);
+    flag_isSlideEnabled = 1;
+  }
+
+
 // END LOOP
 }
 
@@ -222,14 +260,14 @@ void ISR_pin_trigger_in()
     // SET LASER RESET TIMER COUNT AS MAX COUNT
     // ENABLE LASER RESET TIMER
 
-  if (flag_isTriggerEnabled)
+  if (flag_isTriggerEnabled && (firingMode != MODE_SAFETY))
   {
     flag_isTriggerEnabled = 0;
-    ++flag_doFireLaser;
+    flag_doFireLaser = 1;
     timer_triggerDebounce.count = timer_triggerDebounce.maxCount;
-    ++timer_triggerDebounce.flag_isEnabled;
+    timer_triggerDebounce.flag_isEnabled = 1;
     timer_laserReset.count = timer_laserReset.maxCount;
-    ++timer_laserReset.flag_isEnabled;
+    timer_laserReset.flag_isEnabled = 1;
   }
   
 // END TRIGGER SWITCH ISR
@@ -240,7 +278,11 @@ void ISR_pin_trigger_in()
 void ISR_pin_slide_in()
 {
 
+
+// TODO:  UPDATE COMMENTS
+
   // IF SLIDE INPUT ENABLED
+    // ENABLE TRIGGER (REMOVE SAFETY)
     // DISABLE SLIDE INPUT
     // SET DO RACK SLIDE FLAG
     // SET SLIDE DEBOUNCE TIMER COUNT AS MAX COUNT
@@ -248,11 +290,26 @@ void ISR_pin_slide_in()
   
   if (flag_isSlideEnabled)
   {
-    ++flag_isTriggerEnabled;
+//    flag_isTriggerEnabled = 1;
+    if (!timer_modeSelectionWindow.flag_isEnabled)
+    {
+      firingMode = MODE_SEMI_AUTOMATIC;
+//      Serial.print("RESET:  ");
+//      Serial.println(firingMode);
+    }
+    else
+    {
+      ++firingMode;
+//      Serial.print("MODE:  ");
+//      Serial.println(firingMode);
+    }
+    timer_modeSelectionWindow.count = timer_modeSelectionWindow.maxCount;
+    timer_modeSelectionWindow.flag_isEnabled = 1;
+
     flag_isSlideEnabled = 0;
-    ++flag_doRackSlide;
+    flag_doRackSlide = 1;
     timer_slideDebounce.count = timer_slideDebounce.maxCount;
-    ++timer_slideDebounce.flag_isEnabled;
+    timer_slideDebounce.flag_isEnabled = 1;
   }
 
 // END SLIDE SWITCH ISR
@@ -275,7 +332,7 @@ ISR(TIMER1_COMPA_vect)
     if (timer_triggerDebounce.count <= 0)
     {
       timer_triggerDebounce.flag_isEnabled = 0;
-      ++timer_triggerDebounce.flag_doEvent;
+      timer_triggerDebounce.flag_doEvent = 1;
     }
     else
     {
@@ -296,7 +353,7 @@ ISR(TIMER1_COMPA_vect)
     if (timer_slideDebounce.count <= 0)
     {
       timer_slideDebounce.flag_isEnabled = 0;
-      ++timer_slideDebounce.flag_doEvent;
+      timer_slideDebounce.flag_doEvent = 1;
     }
     else
     {
@@ -317,11 +374,32 @@ ISR(TIMER1_COMPA_vect)
     if (timer_triggerReset.count <= 0)
     {
       timer_triggerReset.flag_isEnabled = 0;
-      ++timer_triggerReset.flag_doEvent;
+      timer_triggerReset.flag_doEvent = 1;
     }
     else
     {
       --timer_triggerReset.count;
+    }
+  }
+  
+
+  // IF SLIDE RESET TIMER ENABLED
+    // IF COUNT <= 0 
+      // DISABLE TIMER
+      // SET DO EVENT FLAG
+    // ELSE 
+      // DECREMENT COUNT
+
+  if (timer_slideReset.flag_isEnabled)
+  {
+    if (timer_slideReset.count <= 0)
+    {
+      timer_slideReset.flag_isEnabled = 0;
+      timer_slideReset.flag_doEvent = 1;
+    }
+    else
+    {
+      --timer_slideReset.count;
     }
   }
   
@@ -338,13 +416,35 @@ ISR(TIMER1_COMPA_vect)
     if (timer_laserReset.count <= 0)
     {
       timer_laserReset.flag_isEnabled = 0;
-      ++timer_laserReset.flag_doEvent;
+      timer_laserReset.flag_doEvent = 1;
     }
     else
     {
       --timer_laserReset.count;
     }
   }
+
+
+  // IF MODE SELECTION WINDOW TIMER ENABLED
+    // IF COUNT <= 0 
+      // DISABLE TIMER
+      // DO NOT SET DO EVENT FLAG
+    // ELSE 
+      // DECREMENT COUNT
+
+  if (timer_modeSelectionWindow.flag_isEnabled)
+  {
+    if (timer_modeSelectionWindow.count <= 0)
+    {
+      timer_modeSelectionWindow.flag_isEnabled = 0;
+      // timer_modeSelectionWindow.flag_doEvent = 1;
+    }
+    else
+    {
+      --timer_modeSelectionWindow.count;
+    }
+  }
+
 
 // END TIMER1 ISR
 }
