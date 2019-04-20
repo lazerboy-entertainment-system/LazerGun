@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_09
+// VERSION: BETA_10
 
 
 // INCLUDED LIBRARIES
@@ -152,11 +152,11 @@ void loop()
     // STOP FIRING LASER
     // CLEAR RESET LASER DO EVENT FLAG
 
-  if (timer_laserReset.flag_doEvent)
-  {  
-    digitalWrite(PIN_LASER_OUT, LOW);
-    timer_laserReset.flag_doEvent = 0;
-  }
+//  if (timer_laserReset.flag_doEvent)
+//  {  
+//    digitalWrite(PIN_LASER_OUT, LOW);
+//    timer_laserReset.flag_doEvent = 0;
+//  }
 
 
   // ON TRIGGER DEBOUNCE TIMER EVENT
@@ -178,8 +178,27 @@ void loop()
     }
     else
     {
-      timer_triggerDebounce.count = timer_triggerDebounce.maxCount;
-      timer_triggerDebounce.flag_isEnabled = 1;      
+      if (firingMode >= MODE_FULLY_AUTOMATIC)
+      {
+        while (digitalRead(PIN_TRIGGER_IN) == LOW)
+        {
+          digitalWrite(PIN_LASER_OUT, HIGH);
+          digitalWrite(PIN_TRIGGER_OUT, HIGH);
+          delay(TIMER_LASER_RESET_MAX_COUNT * TIMER_INTERVAL_MILLISECONDS);
+          digitalWrite(PIN_LASER_OUT, LOW);
+          delay(150);
+          digitalWrite(PIN_TRIGGER_OUT, LOW);
+          delay(30);   
+          timer_triggerDebounce.flag_doEvent = 0;
+          timer_triggerReset.count = timer_triggerReset.maxCount;
+          timer_triggerReset.flag_isEnabled = 1;      
+        }
+      }
+      else
+      {
+        timer_triggerDebounce.count = timer_triggerDebounce.maxCount;
+        timer_triggerDebounce.flag_isEnabled = 1;      
+      }
     }
   }
 
@@ -411,7 +430,8 @@ ISR(TIMER1_COMPA_vect)
   // IF LASER RESET TIMER ENABLED
     // IF COUNT <= 0 
       // DISABLE TIMER
-      // SET DO EVENT FLAG
+      // DO NOT SET DO EVENT FLAG
+      // STOP FIRING LASER
     // ELSE 
       // DECREMENT COUNT
 
@@ -420,7 +440,8 @@ ISR(TIMER1_COMPA_vect)
     if (timer_laserReset.count <= 0)
     {
       timer_laserReset.flag_isEnabled = 0;
-      timer_laserReset.flag_doEvent = 1;
+//      timer_laserReset.flag_doEvent = 1;
+      digitalWrite(PIN_LASER_OUT, LOW);
     }
     else
     {
