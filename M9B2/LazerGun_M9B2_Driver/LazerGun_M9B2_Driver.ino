@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_08
+// VERSION: BETA_09
 
 
 // INCLUDED LIBRARIES
@@ -120,7 +120,10 @@ void setup()
   // PREVENT UNINTENTIONAL REMOVAL OF SAFETY AT SYSTEM START
   flag_isSlideEnabled = 0;
   timer_slideReset.count = TIMER_SLIDE_RESET_INIT;
-  timer_slideReset.flag_isEnabled = 1;      
+  timer_slideReset.flag_isEnabled = 1;
+
+  // ALERT USER SYSTEM HAS STARTED
+  digitalWrite(PIN_SLIDE_OUT, HIGH); 
 
 //  Serial.begin(115200);
 
