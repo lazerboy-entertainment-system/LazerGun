@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_10
+// VERSION: BETA_11
 
 
 // INCLUDED LIBRARIES
@@ -39,6 +39,9 @@
 #define TIMER_SLIDE_RESET_INIT                  50
 #define TIMER_MODE_SELECTION_WINDOW_MAX_COUNT   250
 
+// COLORADO-COMPLIANT MAGAZINE HOLDS 15
+#define MAGAZINE_MAX_CAPACITY     15
+
 
 // TYPE DEFINITIONS
 typedef struct timer16_t timer16_t;
@@ -57,6 +60,8 @@ const double MAX_TIMER_ISR_COUNT = ((CPU_MHZ * 1000.0) / TIMER_PRESCALAR * TIMER
 
 // GLOBAL VARIABLES
 uint8_t firingMode = MODE_SAFETY;
+uint8_t magazineCapacity = MAGAZINE_MAX_CAPACITY;
+uint8_t threeRoundShot = 1;
 
 
 // ISR VARIABLES
@@ -125,7 +130,7 @@ void setup()
   // ALERT USER SYSTEM HAS STARTED
   digitalWrite(PIN_SLIDE_OUT, HIGH); 
 
-//  Serial.begin(115200);
+  Serial.begin(115200);
 
 // END SETUP
 }
@@ -135,6 +140,8 @@ void setup()
 void loop() 
 {
 
+//Serial.println(magazineCapacity);
+
   // ON FIRE LASER EVENT
     // FIRE LASER
     // GENERATE FIRE LASER SOUND
@@ -142,12 +149,21 @@ void loop()
 
   if (flag_doFireLaser)
   {
+  
     digitalWrite(PIN_LASER_OUT, HIGH);
     digitalWrite(PIN_TRIGGER_OUT, HIGH);
     flag_doFireLaser = 0;
+    --magazineCapacity;
+
+Serial.print("FIRING MODE:  ");
+Serial.print(firingMode);
+Serial.print("   CAPACITY:  ");
+Serial.println(magazineCapacity);
+
   }
 
 
+  // NOTE:  THIS CODE NOW HANDLED IN ISR
   // ON LASER RESET EVENT
     // STOP FIRING LASER
     // CLEAR RESET LASER DO EVENT FLAG
@@ -178,20 +194,54 @@ void loop()
     }
     else
     {
+      if (firingMode == MODE_THREE_ROUND_BURST)
+      {
+        for (threeRoundShot = 1; threeRoundShot <= 3; ++threeRoundShot)
+        {
+          if (magazineCapacity > 0)
+          {
+            digitalWrite(PIN_LASER_OUT, HIGH);
+            digitalWrite(PIN_TRIGGER_OUT, HIGH);
+            delay(TIMER_LASER_RESET_MAX_COUNT * TIMER_INTERVAL_MILLISECONDS);
+            digitalWrite(PIN_LASER_OUT, LOW);
+            delay(180);
+            digitalWrite(PIN_TRIGGER_OUT, LOW);
+            delay(30);   
+            --magazineCapacity;
+          }
+        }
+      }
+
       if (firingMode >= MODE_FULLY_AUTOMATIC)
       {
         while (digitalRead(PIN_TRIGGER_IN) == LOW)
         {
-          digitalWrite(PIN_LASER_OUT, HIGH);
-          digitalWrite(PIN_TRIGGER_OUT, HIGH);
-          delay(TIMER_LASER_RESET_MAX_COUNT * TIMER_INTERVAL_MILLISECONDS);
-          digitalWrite(PIN_LASER_OUT, LOW);
-          delay(150);
-          digitalWrite(PIN_TRIGGER_OUT, LOW);
-          delay(30);   
+          if (magazineCapacity > 0)
+          {
+            digitalWrite(PIN_LASER_OUT, HIGH);
+            digitalWrite(PIN_TRIGGER_OUT, HIGH);
+            delay(TIMER_LASER_RESET_MAX_COUNT * TIMER_INTERVAL_MILLISECONDS);
+            digitalWrite(PIN_LASER_OUT, LOW);
+            delay(180);
+            digitalWrite(PIN_TRIGGER_OUT, LOW);
+            delay(30);   
+            --magazineCapacity;
+          }
+
+          if (magazineCapacity <= 0)
+          {
+            firingMode = MODE_SAFETY;
+          }
+
           timer_triggerDebounce.flag_doEvent = 0;
           timer_triggerReset.count = timer_triggerReset.maxCount;
           timer_triggerReset.flag_isEnabled = 1;      
+
+Serial.print("FIRING MODE:  ");
+Serial.print(firingMode);
+Serial.print("   CAPACITY:  ");
+Serial.println(magazineCapacity);
+
         }
       }
       else
@@ -242,7 +292,8 @@ void loop()
     {
       timer_slideDebounce.flag_doEvent = 0;
       timer_slideReset.count = timer_slideReset.maxCount;
-      timer_slideReset.flag_isEnabled = 1;      
+      timer_slideReset.flag_isEnabled = 1;    
+      flag_isTriggerEnabled = 1;  
     }
     else
     {
@@ -281,10 +332,24 @@ void ISR_pin_trigger_in()
     // SET LASER RESET TIMER COUNT AS MAX COUNT
     // ENABLE LASER RESET TIMER
 
-  if (flag_isTriggerEnabled && (firingMode != MODE_SAFETY))
+  if (magazineCapacity <= 0)
+  {
+    firingMode = MODE_SAFETY;
+  }
+
+  if (firingMode == MODE_SAFETY)
   {
     flag_isTriggerEnabled = 0;
-    flag_doFireLaser = 1;
+  }
+
+  if (flag_isTriggerEnabled)
+  {
+    if (firingMode == MODE_SEMI_AUTOMATIC)
+    {
+      flag_doFireLaser = 1;
+    }
+
+    flag_isTriggerEnabled = 0;
     timer_triggerDebounce.count = timer_triggerDebounce.maxCount;
     timer_triggerDebounce.flag_isEnabled = 1;
     timer_laserReset.count = timer_laserReset.maxCount;
@@ -326,6 +391,8 @@ void ISR_pin_slide_in()
 //      Serial.print("MODE:  ");
 //      Serial.println(firingMode);
     }
+    magazineCapacity = MAGAZINE_MAX_CAPACITY;
+
     timer_modeSelectionWindow.count = timer_modeSelectionWindow.maxCount;
     timer_modeSelectionWindow.flag_isEnabled = 1;
 
