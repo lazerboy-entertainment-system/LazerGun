@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_12
+// VERSION: BETA_14
 
 
 // INCLUDED LIBRARIES
@@ -42,7 +42,6 @@
 #define DELAY_REPEATING_SOUND     80
 #define DELAY_REPEATING_RESET     40
 
-// COLORADO-COMPLIANT MAGAZINE HOLDS 15
 #define MAGAZINE_MAX_CAPACITY     15
 
 
@@ -133,7 +132,7 @@ void setup()
   // ALERT USER SYSTEM HAS STARTED
   digitalWrite(PIN_SLIDE_OUT, HIGH); 
 
-  Serial.begin(115200);
+//  Serial.begin(115200);
 
 // END SETUP
 }
@@ -143,8 +142,6 @@ void setup()
 void loop() 
 {
 
-//Serial.println(magazineCapacity);
-
   // ON FIRE LASER EVENT
     // FIRE LASER
     // GENERATE FIRE LASER SOUND
@@ -152,17 +149,10 @@ void loop()
 
   if (flag_doFireLaser)
   {
-  
     digitalWrite(PIN_LASER_OUT, HIGH);
     digitalWrite(PIN_TRIGGER_OUT, HIGH);
     flag_doFireLaser = 0;
     --magazineCapacity;
-
-//    Serial.print("FIRING MODE:  ");
-//    Serial.print(firingMode);
-//    Serial.print("   CAPACITY:  ");
-//    Serial.println(magazineCapacity);
-
   }
 
 
@@ -231,26 +221,20 @@ void loop()
             --magazineCapacity;
           }
 
-          if (magazineCapacity <= 0)
-          {
-            firingMode = MODE_SAFETY;
-          }
-
           timer_triggerDebounce.flag_doEvent = 0;
           timer_triggerReset.count = timer_triggerReset.maxCount;
           timer_triggerReset.flag_isEnabled = 1;      
-
-//          Serial.print("FIRING MODE:  ");
-//          Serial.print(firingMode);
-//          Serial.print("   CAPACITY:  ");
-//          Serial.println(magazineCapacity);
-
         }
       }
       else
       {
         timer_triggerDebounce.count = timer_triggerDebounce.maxCount;
         timer_triggerDebounce.flag_isEnabled = 1;      
+      }
+
+      if (magazineCapacity <= 0)
+      {
+        firingMode = MODE_SAFETY;
       }
     }
   }
@@ -385,14 +369,10 @@ void ISR_pin_slide_in()
     if (!timer_modeSelectionWindow.flag_isEnabled)
     {
       firingMode = MODE_SEMI_AUTOMATIC;
-//      Serial.print("RESET:  ");
-//      Serial.println(firingMode);
     }
     else
     {
       ++firingMode;
-//      Serial.print("MODE:  ");
-//      Serial.println(firingMode);
     }
     magazineCapacity = MAGAZINE_MAX_CAPACITY;
 
