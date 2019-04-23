@@ -5,7 +5,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERGUN DRIVER
 // MODEL M9B2
-// VERSION: BETA_11
+// VERSION: BETA_12
 
 
 // INCLUDED LIBRARIES
@@ -38,6 +38,9 @@
 #define TIMER_SLIDE_RESET_MAX_COUNT             10
 #define TIMER_SLIDE_RESET_INIT                  50
 #define TIMER_MODE_SELECTION_WINDOW_MAX_COUNT   250
+
+#define DELAY_REPEATING_SOUND     80
+#define DELAY_REPEATING_RESET     40
 
 // COLORADO-COMPLIANT MAGAZINE HOLDS 15
 #define MAGAZINE_MAX_CAPACITY     15
@@ -155,10 +158,10 @@ void loop()
     flag_doFireLaser = 0;
     --magazineCapacity;
 
-Serial.print("FIRING MODE:  ");
-Serial.print(firingMode);
-Serial.print("   CAPACITY:  ");
-Serial.println(magazineCapacity);
+//    Serial.print("FIRING MODE:  ");
+//    Serial.print(firingMode);
+//    Serial.print("   CAPACITY:  ");
+//    Serial.println(magazineCapacity);
 
   }
 
@@ -204,9 +207,9 @@ Serial.println(magazineCapacity);
             digitalWrite(PIN_TRIGGER_OUT, HIGH);
             delay(TIMER_LASER_RESET_MAX_COUNT * TIMER_INTERVAL_MILLISECONDS);
             digitalWrite(PIN_LASER_OUT, LOW);
-            delay(180);
+            delay(DELAY_REPEATING_SOUND);
             digitalWrite(PIN_TRIGGER_OUT, LOW);
-            delay(30);   
+            delay(DELAY_REPEATING_RESET);   
             --magazineCapacity;
           }
         }
@@ -222,9 +225,9 @@ Serial.println(magazineCapacity);
             digitalWrite(PIN_TRIGGER_OUT, HIGH);
             delay(TIMER_LASER_RESET_MAX_COUNT * TIMER_INTERVAL_MILLISECONDS);
             digitalWrite(PIN_LASER_OUT, LOW);
-            delay(180);
+            delay(DELAY_REPEATING_SOUND);
             digitalWrite(PIN_TRIGGER_OUT, LOW);
-            delay(30);   
+            delay(DELAY_REPEATING_RESET);   
             --magazineCapacity;
           }
 
@@ -237,10 +240,10 @@ Serial.println(magazineCapacity);
           timer_triggerReset.count = timer_triggerReset.maxCount;
           timer_triggerReset.flag_isEnabled = 1;      
 
-Serial.print("FIRING MODE:  ");
-Serial.print(firingMode);
-Serial.print("   CAPACITY:  ");
-Serial.println(magazineCapacity);
+//          Serial.print("FIRING MODE:  ");
+//          Serial.print(firingMode);
+//          Serial.print("   CAPACITY:  ");
+//          Serial.println(magazineCapacity);
 
         }
       }
